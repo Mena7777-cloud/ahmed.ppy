@@ -1,14 +1,16 @@
-from sqlalchemy import create_engine, Column, Integer, String, DateTime, Float, ForeignKey
-from sqlalchemy.orm import sessionmaker, relationship
+from sqlalchemy import create_engine, Column, Integer, String, DateTime
+from sqlalchemy.orm import sessionmaker
 from sqlalchemy.ext.declarative import declarative_base
 from datetime import datetime
 import bcrypt
 
-DATABASE_URL = "sqlite:///./system_v3_final.db" # اسم جديد لضمان بداية نظيفة
+# 1. إعداد الاتصال
+DATABASE_URL = "sqlite:///./ultimate_storage.db"
 engine = create_engine(DATABASE_URL, connect_args={"check_same_thread": False})
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 Base = declarative_base()
 
+# 2. تعريف جدول المنتج
 class Product(Base):
     __tablename__ = "products"
     id = Column(Integer, primary_key=True, autoincrement=True)
@@ -20,8 +22,8 @@ class Product(Base):
     price = Column(Integer, default=0)
     reorder_level = Column(Integer, default=5)
     added_at = Column(DateTime, default=datetime.utcnow)
-    transactions = relationship("Transaction", back_populates="product")
 
+# 3. تعريف جدول المستخدمين
 class User(Base):
     __tablename__ = "users"
     id = Column(Integer, primary_key=True, index=True)
@@ -29,28 +31,7 @@ class User(Base):
     password_hash = Column(String, nullable=False)
     role = Column(String, default="user", nullable=False)
 
-class Transaction(Base):
-    __tablename__ = "transactions"
-    id = Column(Integer, primary_key=True, index=True)
-    product_id = Column(Integer, ForeignKey("products.id"))
-    user_id = Column(Integer, ForeignKey("users.id"))
-    type = Column(String, nullable=False)
-    quantity_change = Column(Integer, nullable=False)
-    reason = Column(String, default="")
-    timestamp = Column(DateTime, default=datetime.utcnow)
-    product = relationship("Product", back_populates="transactions")
-    user = relationship("User")
-
-class AuditLog(Base):
-    __tablename__ = "audit_logs"
-    id = Column(Integer, primary_key=True, index=True)
-    user_id = Column(Integer, ForeignKey("users.id"), nullable=True)
-    username = Column(String)
-    action = Column(String, nullable=False)
-    details = Column(String, default="")
-    timestamp = Column(DateTime, default=datetime.utcnow)
-
-# --- دوال مساعدة لكلمات المرور (هنا تم إضافة الدالة المفقودة) ---
+# 4. دوال مساعدة لكلمات المرور (هنا تم إضافة الدالة المفقودة)
 def hash_password(password: str):
     return bcrypt.hashpw(password.encode(), bcrypt.gensalt()).decode()
 
@@ -60,7 +41,7 @@ def verify_password(password: str, hashed: str):
     """
     return bcrypt.checkpw(password.encode(), hashed.encode())
 
-# --- إنشاء الجداول والمستخدمين الافتراضيين ---
+# 5. إنشاء الجداول والمستخدمين الافتراضيين
 def create_db_and_users():
     Base.metadata.create_all(bind=engine)
     db = SessionLocal()
@@ -69,8 +50,5 @@ def create_db_and_users():
         guest_user = User(username="user", password_hash=hash_password("user123"), role="user")
         db.add(admin_user)
         db.add(guest_user)
-        db.commit()
-        log = AuditLog(username="System", action="إنشاء المستخدمين الافتراضيين")
-        db.add(log)
         db.commit()
     db.close()
