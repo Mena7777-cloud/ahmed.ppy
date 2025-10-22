@@ -50,12 +50,17 @@ class AuditLog(Base):
     details = Column(String, default="")
     timestamp = Column(DateTime, default=datetime.utcnow)
 
+# --- دوال مساعدة لكلمات المرور (هنا تم إضافة الدالة المفقودة) ---
 def hash_password(password: str):
     return bcrypt.hashpw(password.encode(), bcrypt.gensalt()).decode()
 
 def verify_password(password: str, hashed: str):
+    """
+    هذه هي الدالة التي كانت مفقودة وتمت إضافتها.
+    """
     return bcrypt.checkpw(password.encode(), hashed.encode())
 
+# --- إنشاء الجداول والمستخدمين الافتراضيين ---
 def create_db_and_users():
     Base.metadata.create_all(bind=engine)
     db = SessionLocal()
